@@ -11,11 +11,11 @@ import { CommonModule } from '@angular/common';
       <div class="stats">
         Mana: {{ gameEngine.mana() | number:'1.0-0' }} | 
         Level: {{ gameEngine.level() }}
-        <button (click)="gameEngine.spawnTestMonster()" style="margin-left: 10px;">
-          E-Rank Gate öffnen (Spawn)
+        <button (click)="gameEngine.startWave()" [disabled]="gameEngine.isWaveRunning()">
+          Nächstes Gate öffnen (Welle starten)
         </button>
       </div>
-      <canvas #gameCanvas width="800" height="600"></canvas>
+      <canvas #gameCanvas (click)="handleCanvasClick($event)" width="800" height="600"></canvas>
     </div>
   `,
   styles: [`
@@ -29,6 +29,11 @@ export class GameBoardComponent implements OnInit, AfterViewInit {
   @ViewChild('gameCanvas') canvas!: ElementRef<HTMLCanvasElement>;
 
   public gameEngine = inject(GameLogicService);
+
+  public towerSlots = [
+    { x: 150, y: 150, occupied: false },
+    { x: 400, y: 300, occupied: false }
+  ];
 
 
   ngOnInit() {
@@ -47,9 +52,36 @@ export class GameBoardComponent implements OnInit, AfterViewInit {
 
     const ctx = this.canvas.nativeElement.getContext('2d');
     if (ctx) {
-      this.gameEngine.render(ctx);
+      this.gameEngine.render(ctx, this.towerSlots);
     }
 
     requestAnimationFrame(this.gameLoop);
+  }
+
+  handleCanvasClick(event: MouseEvent) {
+    const rect = this.canvas.nativeElement.getBoundingClientRect();
+    const x = event.clientX - rect.left;
+    const y = event.clientY - rect.top;
+
+    this.towerSlots.forEach(slot => {
+      const dist = Math.sqrt((x - slot.x) ** 2 + (y - slot.y) ** 2);
+
+      // Wenn in den Kreis geklickt wurde und genug Mana da ist
+      if (dist < 25 && !slot.occupied && this.gameEngine.mana() >= 50) {
+        slot.occupied = true;
+        this.gameEngine.mana.update(m => m - 50);
+        this.gameEngine.addHunter(slot.x, slot.y);
+        console.log("ARISE!");
+      }
+    });
+  }
+
+  placeHunter(slot: any) {
+    if (this.gameEngine.mana() >= 50) { // Kosten für einen Schatten-Soldaten
+      this.gameEngine.mana.update(m => m - 50);
+      slot.occupied = true;
+      console.log("Arise! Ein Schatten-Soldat wurde beschworen.");
+      // Hier rufen wir später: this.gameEngine.addHunter(slot.x, slot.y);
+    }
   }
 }

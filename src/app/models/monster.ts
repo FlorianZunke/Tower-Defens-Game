@@ -17,27 +17,28 @@ export class Monster {
 
         // Bild laden
         this.image = new Image();
-        this.image.src = '/images/monsters/Hallokin/idle.png';
+        this.image.src = stats.imgUrl;
     }
 
     // Jedes Monster weiß selbst, wie es sich bewegt
     update(dt: number, waypoints: { x: number, y: number }[]) {
         const target = waypoints[this.waypointIndex];
+        if (!target) return;
 
-        // Richtung berechnen
         const dx = target.x - this.x;
         const dy = target.y - this.y;
         const distance = Math.sqrt(dx * dx + dy * dy);
 
-        if (distance < 5) {
-            this.waypointIndex++; // Nächster Punkt, wenn nah genug dran
+        // Wenn wir fast da sind ODER distance 0 ist
+        if (distance < 2) {
+            this.waypointIndex++;
             if (this.waypointIndex >= waypoints.length) {
-                this.isActive = false; // Monster hat das Ende erreicht (Schaden am Spieler!)
-                return;
+                this.isActive = false;
             }
+            return;
         }
 
-        // Bewegen
+        // Bewegen (Nur wenn distance > 0)
         this.x += (dx / distance) * this.speed * dt;
         this.y += (dy / distance) * this.speed * dt;
     }
@@ -46,18 +47,33 @@ export class Monster {
     draw(ctx: CanvasRenderingContext2D) {
         if (!this.isActive) return;
 
-        ctx.save(); // Speichert den aktuellen Zustand des Canvas (Farben, Filter etc.)
+        ctx.save();
 
-        ctx.shadowBlur = 20;            // Wie stark soll es leuchten?
-        ctx.shadowColor = '#4b0082';  // In welcher Farbe soll es leuchten?
+        // Wenn das Bild geladen ist UND eine Breite hat (nicht broken)
+        if (this.image.complete && this.image.naturalWidth !== 0) {
+            ctx.save();
+            ctx.shadowBlur = 20;
+            ctx.shadowColor = '#4b0082';
+            ctx.drawImage(this.image, this.x = -25, this.y = -25, 50, 50);
+            ctx.restore();
+        } else {
+            // FALLBACK: Ein grüner Kreis für Goblins
+            ctx.fillStyle = '#2ecc71'; // Goblin-Grün
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, 15, 0, Math.PI * 2);
+            ctx.fill();
+            // Ein kleiner Leuchteffekt auch für den Kreis
+            ctx.shadowBlur = 10;
+            ctx.shadowColor = '#2ecc71';
+            ctx.stroke();
+        }
 
-        ctx.drawImage(this.image, this.x, this.y, 50, 50); // Zeichne das Bild mit dem Leuchten
-        ctx.restore(); // Setzt den Zustand zurück (schaltet das Leuchten für das nächste Objekt aus)
+        ctx.restore();
 
-        // Kleiner Lebensbalken über dem Monster
+        // Lebensbalken (bleibt wie er ist)
         ctx.fillStyle = 'red';
-        ctx.fillRect(this.x, this.y - 10, 50, 5);
+        ctx.fillRect(this.x - 25, this.y - 35, 50, 5);
         ctx.fillStyle = 'green';
-        ctx.fillRect(this.x, this.y - 10, (this.hp / this.maxHp) * 50, 5);
+        ctx.fillRect(this.x - 25, this.y - 35, (this.hp / this.maxHp) * 50, 5);
     }
 }
