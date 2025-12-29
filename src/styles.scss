@@ -1,1 +1,15 @@
-/* You can add global styles to this file, and also import other style files */
+
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  background-color: #0b0d12; /* Hintergrundfarbe passend zum Spiel */
+  overflow: hidden; /* Verhindert Scrollbalken, wenn Canvas exakt passt */
+  box-sizing: border-box;
+}
+
+/* Damit alles sauber berechnet wird */
+*, *::before, *::after {
+  box-sizing: inherit;
+}

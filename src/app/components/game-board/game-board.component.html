@@ -1,1 +1,70 @@
-<p>game-board works!</p>
+<section class="main-layout">
+    <main class="game-area">
+        <canvas #gameCanvas (click)="handleCanvasClick($event)" (mousemove)="handleMouseMove($event)"
+            (mouseleave)="hoveredSlot = null" width="800" height="600">
+        </canvas>
+
+        <div *ngIf="gameEngine.lives() <= 0" class="game-over-overlay">
+            <h1>YOU DIED</h1>
+            <p>Die Schatten haben versagt.</p>
+            <button (click)="location.reload()">ERWACHEN (Neustart)</button>
+        </div>
+    </main>
+
+    <aside class="sidebar">
+        <h2 class="title">SYSTEM</h2>
+
+        <div class="panel stats-panel">
+            <div class="stat-row">
+                <span class="label">LEBEN</span>
+                <span class="value" [style.color]="gameEngine.lives() <= 3 ? '#ff4444' : '#fff'">
+                    {{ gameEngine.lives() }} / 10
+                </span>
+            </div>
+            <div class="stat-row">
+                <span class="label">MANA</span>
+                <span class="value mana-text">{{ gameEngine.mana() | number:'1.0-0' }}</span>
+            </div>
+            <div class="stat-row">
+                <span class="label">LEVEL</span>
+                <span class="value text-blue">{{ gameEngine.level() }}</span>
+            </div>
+        </div>
+
+        <div class="panel wave-panel">
+            <h3>Nächste Bedrohung</h3>
+            <div class="monster-preview">
+                <div class="preview-circle"></div>
+            </div>
+            <div class="wave-info">
+                <p>HP: <span class="danger">{{ gameEngine.getNextWaveStats().hp }}</span></p>
+                <p>Speed: <span>{{ gameEngine.getNextWaveStats().speed }}</span></p>
+                <p>Anzahl: <span>{{ gameEngine.getNextWaveStats().count }}</span></p>
+            </div>
+
+            <button class="btn-start" (click)="gameEngine.startWave()" [disabled]="gameEngine.isWaveRunning()">
+                {{ gameEngine.isWaveRunning() ? 'WELLE LÄUFT...' : 'GATE ÖFFNEN' }}
+            </button>
+        </div>
+
+        <div class="panel shop-panel">
+            <h3>Schatten Armee</h3>
+
+            <button class="shop-item" (click)="selectedType = 'MELEE'" [class.active]="selectedType === 'MELEE'">
+                <div class="icon melee">⚔️</div>
+                <div class="info">
+                    <span>Infanterie</span>
+                    <span class="cost">50 Mana</span>
+                </div>
+            </button>
+
+            <button class="shop-item" (click)="selectedType = 'RANGED'" [class.active]="selectedType === 'RANGED'">
+                <div class="icon ranged">🔮</div>
+                <div class="info">
+                    <span>Magier</span>
+                    <span class="cost">100 Mana</span>
+                </div>
+            </button>
+        </div>
+    </aside>
+</section>

@@ -1,0 +1,209 @@
+// Farben
+$bg-color: #0b0d12;
+$panel-bg: #151922;
+$accent-blue: #00fbff;
+$accent-purple: #8a2be2;
+$text-color: #e0e0e0;
+$danger: #ff4444;
+
+:host {
+    display: block;
+    width: 100%;
+    height: 100vh;
+    background-color: $bg-color;
+    color: $text-color;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    overflow: hidden;
+}
+
+.main-layout {
+    display: flex;
+    height: 100%;
+}
+
+/* --- SIDEBAR --- */
+.sidebar {
+    width: 300px;
+    background-color: $panel-bg;
+    border-left: 2px solid #333;
+    border-right: none;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    box-shadow: -5px 0 15px rgba(0, 0, 0, 0.5);
+
+    .title {
+        color: $accent-blue;
+        text-align: center;
+        border-bottom: 1px solid #333;
+        padding-bottom: 10px;
+        letter-spacing: 2px;
+    }
+
+    .panel {
+        background: rgba(0, 0, 0, 0.3);
+        padding: 15px;
+        border-radius: 8px;
+        border: 1px solid #333;
+
+        h3 {
+            margin-top: 0;
+            font-size: 0.9rem;
+            color: #888;
+            text-transform: uppercase;
+        }
+    }
+}
+
+/* STATS */
+.stat-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 8px;
+    font-size: 1.1rem;
+
+    .label {
+        color: #888;
+    }
+
+    .mana-text {
+        color: $accent-blue;
+        font-weight: bold;
+    }
+
+    .text-blue {
+        color: $accent-blue;
+    }
+}
+
+/* WAVE INFO */
+.wave-panel {
+    text-align: center;
+
+    .preview-circle {
+        width: 40px;
+        height: 40px;
+        background-color: #2ecc71; // Goblin Grün
+        border-radius: 50%;
+        margin: 10px auto;
+        box-shadow: 0 0 10px #2ecc71;
+    }
+
+    .wave-info p {
+        margin: 5px 0;
+        font-size: 0.9rem;
+        display: flex;
+        justify-content: space-between;
+    }
+
+    .danger {
+        color: $danger;
+    }
+}
+
+.btn-start {
+    width: 100%;
+    margin-top: 15px;
+    padding: 12px;
+    background: linear-gradient(45deg, darken($accent-blue, 20%), darken($accent-purple, 20%));
+    border: 1px solid $accent-blue;
+    color: white;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s;
+
+    &:hover:not(:disabled) {
+        background: linear-gradient(45deg, $accent-blue, $accent-purple);
+        box-shadow: 0 0 15px $accent-blue;
+    }
+
+    &:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+}
+
+/* SHOP */
+.shop-item {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    background: transparent;
+    border: 1px solid #444;
+    color: white;
+    padding: 10px;
+    margin-bottom: 10px;
+    cursor: pointer;
+    transition: all 0.2s;
+
+    &.active {
+        border-color: $accent-blue;
+        background: rgba(0, 251, 255, 0.1);
+    }
+
+    .icon {
+        width: 30px;
+        height: 30px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-right: 10px;
+        font-size: 1.2rem;
+    }
+
+    .info {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+
+        .cost {
+            font-size: 0.8rem;
+            color: $accent-blue;
+        }
+    }
+}
+
+/* MAIN AREA */
+.game-area {
+    flex-grow: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-image: radial-gradient(circle at center, #1a1a1a 0%, #000 100%);
+    position: relative;
+
+    canvas {
+        box-shadow: 0 0 50px rgba(0, 0, 0, 0.8);
+        border: 2px solid #333;
+    }
+}
+
+.game-over-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.8);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    z-index: 10;
+
+    h1 {
+        color: #ff0000;
+        font-size: 4rem;
+        letter-spacing: 10px;
+        text-shadow: 0 0 20px red;
+    }
+
+    button {
+        padding: 15px 40px;
+        font-size: 1.5rem;
+        cursor: pointer;
+        background: white;
+        border: none;
+    }
+}
