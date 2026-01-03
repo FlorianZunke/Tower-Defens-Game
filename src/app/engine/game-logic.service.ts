@@ -2,6 +2,7 @@ import { Injectable, signal, computed } from '@angular/core';
 
 import { Monster } from '../models/monster';
 import { Character } from '../models/characters';
+import { Projectile } from '../models/projectile';
 
 @Injectable({
   providedIn: 'root'
@@ -17,6 +18,7 @@ export class GameLogicService {
   private _monsters = signal<Monster[]>([]);
   private _monstersToSpawn = signal(0);
   private _characters = signal<Character[]>([]);
+  private _projectiles = signal<Projectile[]>([]);
 
   isWaveRunning = computed(() => this._monsters().length > 0 || this._monstersToSpawn() > 0)
 
@@ -69,11 +71,16 @@ export class GameLogicService {
       }
     }
 
-    // 2. Monster bewegen
+    // Monster bewegen
     const currentMonsters = this._monsters();
     currentMonsters.forEach(m => m.update(dt, this.waypoints));
 
-    // 3. Status prüfen (Tot oder Entkommen?)
+    // PROJEKTILE UPDATEN
+    const activeProjs = this._projectiles().filter(p => p.isActive);
+    activeProjs.forEach(p => p.update(dt));
+    this._projectiles.set(activeProjs.filter(p => p.isActive)); // Aufraumen
+
+    // Status prüfen (Tot oder Entkommen?)
     // Wir gehen durch ALLE Monster und schauen, wer gerade inaktiv geworden ist
     currentMonsters.forEach(m => {
       // Nur reagieren, wenn das Monster gerade fertig ist (nicht mehr aktiv)
@@ -106,11 +113,34 @@ export class GameLogicService {
     // 5. Characters schießen lassen
     // Wir nutzen das gefilterte, frische Array
     const activeMonsters = this._monsters();
-    this._characters().forEach(h => h.update(dt, activeMonsters));
+    this._characters().forEach(c => {
+      // Hier ist der Trick: Wir geben dem Character die Funktion "addProjectile" mit
+      c.update(dt, activeMonsters, (target, dmg) => {
+        this.addProjectile(c.x, c.y, target, dmg)
+      });
+    });
 
     // 6. Mana Regeneration (nur während Welle und wenn nicht Game Over)
     if (this.isWaveRunning() && this.lives() > 0) {
       this.mana.update(m => m + (5 * dt));
+    }
+
+    const monstersActive = this._monsters().length;
+    const monstersLeftToSpawn = this._monstersToSpawn();
+
+    // Wenn keine Monster mehr da sind UND keine mehr kommen...
+    if (monstersActive === 0 && monstersLeftToSpawn === 0) {
+
+      // ...und wir noch leben...
+      if (this.lives() > 0 && !this.isGameOver()) {
+
+        // TRICK: Wir prüfen, ob wir das Level-Up schon gemacht haben?
+        // Am einfachsten: Wir lassen den User manuell die nächste Welle starten.
+        // Wir setzen hier nur einen Status oder loggen es.
+
+        // Optional: Automatisch Mana geben für Welle geschafft
+        // this.mana.update(m => m + 50);
+      }
     }
   }
 
@@ -122,11 +152,20 @@ export class GameLogicService {
   // Methode zum Monsterspawnen
   private spawnMonster() {
     const start = this.waypoints[0];
+    // DEBUG LOG
+    console.log("Versuche zu spawnen bei:", start);
+
+    if (!start || isNaN(start.x) || isNaN(start.y)) {
+      console.error("Start-Wegpunkt ist kaputt!");
+      return;
+    }
+
     const newMonster = new Monster(start.x, start.y, {
-      hp: this.currentWaveStats.hp,     // Dynamische HP
-      speed: this.currentWaveStats.speed, // Dynamischer Speed
-      imgUrl: ''
+      hp: this.currentWaveStats.hp,
+      speed: this.currentWaveStats.speed,
+      imgUrl: 'assets/monsters/Orc.png'
     });
+
     this._monsters.update(m => [...m, newMonster]);
   }
 
@@ -139,25 +178,21 @@ export class GameLogicService {
 
   //Methode zum Starten einer neuen Welle
   startWave() {
-    if (this.isWaveRunning()) return;
+    if (this.isWaveRunning() || this.isGameOver()) return;
 
-    // 1. Level erhöhen
-    this.level.update(l => l + 1);
+    const lvl = this.level(); // Aktuelles Level nutzen (z.B. Start bei 1)
 
-    // 2. Werte für dieses Level berechnen
-    // Wir nutzen einfache Formeln: HP wächst exponentiell, Speed linear
-    const lvl = this.level();
-
+    // Stats für das AKTUELLE Level setzen
     this.currentWaveStats.hp = Math.floor(50 * Math.pow(1.2, lvl));
     this.currentWaveStats.speed = Math.min(200, 80 + (lvl * 5));
     this.currentWaveStats.count = 10 + Math.floor(lvl / 2);
 
-    // 3. Spawner "scharf schalten"
+    // Spawner aktivieren
     this._monstersToSpawn.set(this.currentWaveStats.count);
+    this.spawnTimer = 0; // Reset damit das erste Monster sofort oder nach 1.5s kommt
 
-    console.log(`Welle ${lvl} gestartet! HP: ${this.currentWaveStats.hp}`);
+    console.log(`Welle ${lvl} gestartet!`);
   }
-
 
   // Methode, die die Stats der nächsten Welle zurückgibt
   getNextWaveStats() {
@@ -167,6 +202,11 @@ export class GameLogicService {
       speed: Math.min(200, 80 + (nextLevel * 5)),   // Speed cap bei 200
       count: 10 + Math.floor(nextLevel / 2)         // Alle 2 Level ein Monster mehr
     };
+  }
+
+  addProjectile(x: number, y: number, target: Monster, damage: number) {
+    const arrow = new Projectile(x, y, target, damage);
+    this._projectiles.update(p => [...p, arrow]);
   }
 
 
@@ -183,6 +223,7 @@ export class GameLogicService {
 
     // 3. Bestehende Hunter (Schatten) zeichnen
     this._characters().forEach(h => h.draw(ctx));
+    this._projectiles().forEach(p => p.draw(ctx));
 
     // 4. Aktive Monster zeichnen
     this._monsters().forEach(m => m.draw(ctx));
@@ -194,7 +235,7 @@ export class GameLogicService {
   }
 
   private drawRangePreview(ctx: CanvasRenderingContext2D, slot: any, type: string) {
-    const range = type === 'MELEE' ? 60 : 250;
+    const range = type === 'MELEE' ? 80 : 300;
 
     ctx.save();
     ctx.beginPath();
