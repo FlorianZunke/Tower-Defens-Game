@@ -8,10 +8,13 @@ export class Monster {
     isActive: boolean = true;
     waypointIndex: number = 0;
 
+    // SPRITE / ANIMATION CONFIG
+    private spriteSheet: HTMLImageElement;
+
     // --- ANIMATION CONFIG ---
     // Tiny Swords Standard ist oft 192px. Falls der Ork komisch aussieht, probier hier 100 oder 64.
-    private frameWidth = 64;
-    private frameHeight = 64;
+    private frameWidth = 100;
+    private frameHeight = 100;
 
     private frameX = 0;     // Aktuelles Bild in der Reihe
     private frameY = 1;     // Reihe 2 (Index 1) -> Lauf-Animation
@@ -20,6 +23,8 @@ export class Monster {
     private fps = 10;       // Geschwindigkeit der Animation
     private frameTimer = 0;
     private frameInterval = 1000 / this.fps;
+    private isFacingLeft: boolean = false;
+
 
     constructor(startX: number, startY: number, stats: { hp: number, speed: number, imgUrl: string }) {
         this.x = startX;
@@ -30,6 +35,10 @@ export class Monster {
 
         this.image = new Image();
         this.image.src = stats.imgUrl;
+
+        // Bild laden
+        this.spriteSheet = new Image();
+        this.spriteSheet.src = 'assets/characters/Soldier.png'; // Stelle sicher, dass das Bild dort liegt!
     }
 
     update(dt: number, waypoints: any[]) {
@@ -71,54 +80,69 @@ export class Monster {
             this.y += (dy / distance) * this.speed * dt;
         }
 
-        // Optional: Falls du immer noch NaN Probleme hast, schalte dieses Log kurz ein:
-        /*
-        if (isNaN(this.x)) {
-           console.error("NaN erkannt! target:", target, "distance:", distance, "dt:", dt);
+        if (dx < 0) {
+            this.isFacingLeft = true;
+        } else if (dx > 0) {
+            this.isFacingLeft = false;
         }
-        */
     }
 
     draw(ctx: CanvasRenderingContext2D) {
-        // DEBUG-LOG: Wird das hier überhaupt aufgerufen?
-        // console.log("Monster Draw aufgerufen:", this.x, this.y, this.isActive);
-
         if (!this.isActive) return;
+
+        // Nur zeichnen, wenn das Bild wirklich geladen ist
+        if (!this.image.complete || this.image.naturalWidth === 0) {
+            this.drawFallback(ctx);
+            return;
+        }
 
         ctx.save();
 
-        // 1. DER PINK-PUNKT TEST (Nochmal ganz sicher)
-        ctx.fillStyle = '#ff00ff'; // Knalliges Magenta
-        ctx.beginPath();
-        // Wir zeichnen einen RIESIGEN Kreis, damit wir ihn nicht übersehen können
-        ctx.arc(this.x, this.y, 50, 0, Math.PI * 2);
-        ctx.fill();
+        // WICHTIG: Position runden, um Sub-Pixel-Flackern zu vermeiden
+        ctx.translate(Math.floor(this.x), Math.floor(this.y));
 
-        // Rahmen drumherum
-        ctx.strokeStyle = 'white';
-        ctx.lineWidth = 5;
-        ctx.stroke();
+        if (this.isFacingLeft) {
+            ctx.scale(-1, 1);
+        }
 
-        // 2. BILD ZEICHNEN (Nur wenn sicher)
-        if (this.image.complete && this.image.naturalWidth > 0) {
+        // --- SPRITE BERECHNUNG ---
+        // Wir runden sx und sy ab, damit wir immer exakte Pixel treffen
+        const sx = Math.floor(this.frameX * this.frameWidth);
+        const sy = Math.floor(this.frameY * this.frameHeight);
 
-            // Sicherstellen, dass wir im Bild bleiben
-            const safeFrameWidth = Math.min(this.frameWidth, this.image.naturalWidth);
-            const safeFrameHeight = Math.min(this.frameHeight, this.image.naturalHeight);
+        // Prüfen, ob wir innerhalb des Bildes sind
+        if (sx + this.frameWidth <= this.image.naturalWidth &&
+            sy + this.frameHeight <= this.image.naturalHeight) {
+
+            const drawSize = 64; // Wie groß soll der Ork im Spiel sein?
+            const offset = drawSize / 2;
 
             ctx.drawImage(
                 this.image,
-                0, 0, safeFrameWidth, safeFrameHeight, // Nimm einfach das Eck oben links
-                this.x - 25, this.y - 25, 50, 50       // Ziel
+                sx, sy, this.frameWidth, this.frameHeight,
+                -offset, -offset, drawSize, drawSize
             );
+        } else {
+            // Falls die Frame-Größe falsch ist, zeichnen wir zumindest das ganze Bild
+            ctx.drawImage(this.image, -20, -20, 40, 40);
         }
 
         ctx.restore();
+        this.drawHealthBar(ctx);
+    }
 
-        // Lebensbalken
+    private drawFallback(ctx: CanvasRenderingContext2D) {
+        ctx.fillStyle = 'magenta';
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, 10, 0, Math.PI * 2);
+        ctx.fill();
+    }
+
+    private drawHealthBar(ctx: CanvasRenderingContext2D) {
+        const barWidth = 40;
         ctx.fillStyle = 'red';
-        ctx.fillRect(this.x - 20, this.y - 40, 40, 4);
-        ctx.fillStyle = '#00ff00'; // Hellgrün sieht man besser
-        ctx.fillRect(this.x - 20, this.y - 40, (Math.max(0, this.hp) / this.maxHp) * 40, 4);
+        ctx.fillRect(this.x - 20, this.y - 45, barWidth, 5);
+        ctx.fillStyle = '#00ff00';
+        ctx.fillRect(this.x - 20, this.y - 45, barWidth * (this.hp / this.maxHp), 5);
     }
 }
